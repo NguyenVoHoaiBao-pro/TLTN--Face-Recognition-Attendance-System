@@ -1,0 +1,21 @@
+# Environment variables
+.env
+
+# Virtual environment
+venv/
+ENV/
+
+# Build / dist files
+build/
+dist/
+*.exe
+*.spec
+*.iss
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OS files
+Thumbs.db
+.DS_Store

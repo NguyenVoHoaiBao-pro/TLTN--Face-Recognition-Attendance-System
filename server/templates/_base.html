@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>{{ title or "Face Attendance" }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body { background-color: #f8f9fa; }
+    .navbar-brand { font-weight: bold; }
+    .sidebar {
+      min-height: 100vh;
+      background: #212529;
+      color: white;
+    }
+    .sidebar a {
+      color: #adb5bd;
+      text-decoration: none;
+      display: block;
+      padding: .75rem 1rem;
+      border-radius: .5rem;
+    }
+    .sidebar a.active, .sidebar a:hover {
+      background: #0d6efd;
+      color: white;
+    }
+    .navbar .dropdown-menu {
+      margin-top: 10px;      
+      right: 0;              
+      left: auto;            
+      background-color: #fff; 
+      border-radius: 10px;
+      border: 1px solid #ddd;
+    }
+    .navbar .dropdown-menu {
+      background-color: #ffffff !important; 
+      color: #212529 !important;           
+    }
+
+    .navbar .dropdown-item {
+      color: #212529 !important;
+    }
+
+    .navbar .dropdown-item:hover {
+      background-color: #f8f9fa !important; 
+    }
+    .navbar .nav-link i {
+      font-size: 1.25rem; /* ~ fs-5 */
+      vertical-align: middle;
+    }
+
+
+
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-dark sticky-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{{ url_for('web_ui.dashboard') }}">
+      <i class="bi bi-clock-history me-2"></i>Face Attendance
+    </a>
+    <div class="d-flex align-items-center gap-2">
+  {% if session.get('username') %}
+
+    <!-- Nút chuông thông báo -->
+<li class="nav-item dropdown">
+  <a class="nav-link d-flex align-items-center position-relative" href="#" 
+     id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <i class="bi bi-bell-fill fs-5 text-white me-1"></i> 
+    {% set unread = notifications | selectattr("is_read", "equalto", False) | list | length %}
+    {% if unread > 0 %}
+      <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+        {{ unread }}
+      </span>
+    {% endif %}
+  </a>
+
+  <!-- Dropdown thông báo -->
+  <ul class="dropdown-menu dropdown-menu-end shadow bg-white text-dark"
+      aria-labelledby="notifDropdown" style="min-width: 320px; border-radius: 10px;">
+    {% for n in notifications %}
+      <li class="dropdown-item small {% if not n.is_read %}fw-bold{% endif %}">
+        <i class="bi bi-megaphone text-primary"></i> {{ n.message }}
+        <br><small class="text-muted">{{ n.created_at.strftime("%H:%M %d-%m-%Y") }}</small>
+      </li>
+    {% else %}
+      <li class="dropdown-item text-muted text-center">Không có thông báo</li>
+    {% endfor %}
+  </ul>
+</li>
+    <span class="navbar-text">
+      <i class="bi bi-person-circle"></i> {{ session.get('username') }} ({{ session.get('role') }})
+    </span>
+    <a class="btn btn-outline-light btn-sm" href="{{ url_for('auth.logout') }}">
+      <i class="bi bi-box-arrow-right"></i> Logout
+    </a>
+  {% endif %}
+</div>
+
+  </div>
+</nav>
+
+<div class="container-fluid">
+  <div class="row">
+    {% if session.get('role') == 'admin' %}
+    <!-- Sidebar Admin -->
+    <div class="col-md-2 sidebar p-3">
+      <h5 class="text-white mb-3">Menu</h5>
+      <a href="{{ url_for('web_ui.dashboard') }}" class="{{ 'active' if request.endpoint == 'web_ui.dashboard' else '' }}">
+        <i class="bi bi-speedometer2 me-2"></i>Dashboard
+      </a>
+      <a href="{{ url_for('web_ui.admin_users') }}" class="{{ 'active' if request.endpoint == 'web_ui.admin_users' else '' }}">
+        <i class="bi bi-people me-2"></i>Nhân viên
+      </a>
+      <a href="{{ url_for('web_ui.attendance_page') }}" class="{{ 'active' if request.endpoint == 'web_ui.attendance_page' else '' }}">
+        <i class="bi bi-journal-text me-2"></i>Lịch sử
+      </a>
+      <a href="{{ url_for('web_ui.admin_complaints') }}"
+          class="{{ 'active' if request.endpoint == 'web_ui.admin_complaints' else '' }}">
+          <i class="bi bi-exclamation-circle me-2"></i>Khiếu nại
+      </a>
+      <a href="{{ url_for('web_ui.enroll_face_page') }}" class="{{ 'active' if request.endpoint == 'web_ui.enroll_face_page' else '' }}">
+        <i class="bi bi-camera me-2"></i>Upload khuôn mặt
+      </a>
+    </div>
+    {% endif %}
+    <main class="{% if session.get('role') == 'admin' %}col-md-10{% else %}col-md-12{% endif %} py-4">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for cat, msg in messages %}
+            <div class="alert alert-{{cat}}">{{ msg }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+<script>
+document.getElementById("notifDropdown")
+?.addEventListener("click", ()=>{
+  fetch("/api/notifications/read", { method: "POST" })
+})
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

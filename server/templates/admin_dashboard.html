@@ -1,0 +1,244 @@
+{% extends "_base.html" %}
+{% block content %}
+
+<h3 class="mb-4"><i class="bi bi-speedometer2 me-2"></i>Admin Dashboard</h3>
+
+<div class="row g-3 mb-4">
+
+  <!-- Tổng nhân viên -->
+  <div class="col-md-3">
+    <div class="card shadow-sm text-center p-3 h-100">
+      <div class="d-flex flex-column justify-content-between h-100">
+        <div>
+          <i class="bi bi-people display-5 text-primary"></i>
+          <div class="fw-bold mt-2">Tổng nhân viên</div>
+        </div>
+
+        <div class="display-6">{{ total_users }}</div>
+
+        <!-- giữ chỗ cho đồng đều -->
+        <small class="text-muted">&nbsp;</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tổng bản ghi -->
+  <div class="col-md-3">
+    <div class="card shadow-sm text-center p-3 h-100">
+      <div class="d-flex flex-column justify-content-between h-100">
+        <div>
+          <i class="bi bi-journal-text display-5 text-success"></i>
+          <div class="fw-bold mt-2">Tổng bản ghi</div>
+        </div>
+
+        <div class="display-6">{{ total_logs }}</div>
+
+        <!-- giữ chỗ cho đồng đều -->
+        <small class="text-muted">&nbsp;</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tổng giờ hôm nay -->
+  <div class="col-md-3">
+    <div class="card shadow-sm text-center p-3 h-100">
+      <div class="d-flex flex-column justify-content-between h-100">
+        <div>
+          <i class="bi bi-clock display-5 text-warning"></i>
+          <div class="fw-bold mt-2">Tổng giờ hôm nay</div>
+        </div>
+
+        <div class="display-6">{{ total_hours_today or 0 }}h</div>
+
+        <small class="text-muted">
+          Trung bình: {{ avg_hours_per_employee or 0 }}h/người
+        </small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Đi trễ hôm nay -->
+  <div class="col-md-3">
+    <div class="card shadow-sm text-center p-3 h-100">
+      <div class="d-flex flex-column justify-content-between h-100">
+        <div>
+          <i class="bi bi-exclamation-triangle display-5 text-danger"></i>
+          <div class="fw-bold mt-2">Số nhân viên đi trễ</div>
+        </div>
+
+        <div class="display-6">{{ late_today or 0 }}</div>
+
+        <small class="text-muted">(Theo quy định 8:00)</small>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- Biểu đồ giờ làm trong tháng + controls -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">
+        <i class="bi bi-bar-chart-line me-2"></i>
+        Thống kê lượt check-in ({{ current_month or "Tháng này" }})
+      </h5>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('web_ui.export_data') }}" class="btn btn-sm btn-success">
+          <i class="bi bi-file-earmark-arrow-down"></i> Xuất Excel
+        </a>
+        <a href="{{ url_for('web_ui.admin_users') }}" class="btn btn-sm btn-secondary">
+          <i class="bi bi-people"></i> Danh sách nhân viên
+        </a>
+      </div>
+    </div>
+
+    <canvas id="workChart" height="120"></canvas>
+
+    <div class="mt-3">
+      <small class="text-muted">
+        Mỗi cột thể hiện số lượt check-in trong ngày.
+        Màu xanh = hoạt động nhiều, vàng = trung bình, đỏ = ít hoạt động.
+      </small>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const days = {{ chart_days | tojson }};
+  const values = {{ chart_values | tojson }};
+
+  const ctx = document.getElementById('workChart').getContext('2d');
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: days,
+      datasets: [{
+        label: 'Số lượt check-in',
+        data: values,
+        backgroundColor: values.map(v =>
+          v >= 3 ? 'rgba(34,197,94,0.85)' :   // hoạt động tốt
+          v === 2 ? 'rgba(250,204,21,0.85)' : // trung bình
+                    'rgba(239,68,68,0.8)'     // ít / không hoạt động
+        ),
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.raw} lượt check-in`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Số lượt' }
+        },
+        x: {
+          title: { display: true, text: 'Ngày trong tháng' }
+        }
+      }
+    }
+  });
+</script>
+
+
+<!-- Hoạt động gần đây -->
+<div class="card shadow-sm mt-4 mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Hoạt động gần đây</h5>
+      <div>
+        <a href="{{ url_for('web_ui.attendance_page') }}" class="btn btn-sm btn-outline-primary">
+          Xem chi tiết
+        </a>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Nhân viên</th>
+            <th>Hành động</th>
+            <th>Thời gian</th>
+            <th>Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in recent %}
+          <tr>
+            <td>{{ r.id }}</td>
+            <td>{{ r.user.full_name or r.user.username }}</td>
+            <td>
+              <span class="badge {% if r.action == 'checkin' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                {{ 'Check-in' if r.action=='checkin' else 'Check-out' }}
+              </span>
+            </td>
+            <td>{{ r.timestamp.strftime("%H:%M %d/%m/%Y") }}</td>
+            <td>
+              {% if r.action == 'checkin' %}
+                <span class="badge bg-warning text-dark">Đang làm</span>
+              {% elif r.action == 'checkout' %}
+                <span class="badge bg-success">
+                  Hoàn thành ({{ "%.2f"|format(r.work_hours) if r.work_hours else "?" }}h)
+                </span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="text-center text-muted">Chưa có dữ liệu</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+<div class="card shadow-sm mb-5">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Bảng chấm công theo tháng (nhanh)</h5>
+      <div class="d-flex gap-2 align-items-center">
+        <form method="get" class="d-flex gap-2 align-items-center" action="{{ url_for('web_ui.user_month_view') }}">
+          <select name="user_id" class="form-select form-select-sm" style="width:220px">
+            <option value="">— Chọn nhân viên —</option>
+            {% for u in users_for_select %}
+              <option value="{{ u.id }}">{{ u.full_name or u.username }} ({{ u.department or '—' }})</option>
+            {% endfor %}
+          </select>
+          <select name="month" class="form-select form-select-sm" style="width:140px">
+            {% for m in months %}
+              <option value="{{ m.value }}" {% if m.value==current_month_num %}selected{% endif %}>{{ m.label }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn btn-sm btn-primary">Xem</button>
+        </form>
+
+        <a href="{{ url_for('web_ui.export_data') }}" class="btn btn-sm btn-outline-success">
+          Export toàn bộ (Excel)
+        </a>
+      </div>
+    </div>
+    <small class="text-muted">
+      Chọn nhân viên để xem lưới ngày (mỗi ô = 1 ngày).
+      🟢 Xanh = đủ check-in & check-out |
+      🟡 Vàng = đã check-in |
+      🔴 Đỏ = chưa chấm công
+    </small>
+  </div>
+</div>
+
+{% endblock %}
