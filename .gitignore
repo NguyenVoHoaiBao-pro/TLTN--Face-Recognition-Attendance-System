@@ -4,6 +4,7 @@
 # Virtual environment
 venv/
 ENV/
+.venv/
 
 # Build / dist files
 build/
@@ -15,7 +16,12 @@ dist/
 # Python cache
 __pycache__/
 *.pyc
+*.pyo
 
 # OS files
 Thumbs.db
 .DS_Store
+
+# IDE
+.vscode/
+.idea/
